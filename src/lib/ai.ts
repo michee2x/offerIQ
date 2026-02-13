@@ -74,9 +74,8 @@ export async function analyzeOffer(content: string): Promise<OfferAnalysis> {
   try {
     console.log("🤖 Sending request to Gemini...");
 
-    // Use model from env or fallback to stable flash
-    const modelName = process.env.GEMINI_MODEL || "gemini-2.0-flash-001";
-    
+    const modelName = process.env.GEMINI_MODEL!;
+
     const response = await ai.models.generateContent({
       model: modelName,
       contents: `${SYSTEM_PROMPT}\n\nAnalyze this offer and return ONLY valid JSON:\n\n${content}`,
@@ -88,12 +87,18 @@ export async function analyzeOffer(content: string): Promise<OfferAnalysis> {
     });
 
     console.log("✅ Gemini response received");
+
+    // Safety check for undefined text
+    if (!response.text) {
+      throw new Error("No text in response");
+    }
+
     console.log("--- Google Gemini Response ---");
-    // console.log(response.text); // Commented out to reduce noise
+    console.log(response.text);
     console.log("------------------------------");
 
     // Parse the JSON response
-    const cleaned = response.text()
+    const cleaned = response.text
       .replace(/```json\n?/g, '')
       .replace(/```\n?/g, '')
       .trim();
@@ -109,9 +114,9 @@ export async function analyzeOffer(content: string): Promise<OfferAnalysis> {
 }
 
 export async function generateFunnelCopy(offer: OfferAnalysis, pageType: FunnelPageType): Promise<any> {
-    if (!process.env.GOOGLE_API_KEY) throw new Error("API Key missing");
+  if (!process.env.GOOGLE_API_KEY) throw new Error("API Key missing");
 
-    const prompt = `
+  const prompt = `
     You are an expert funnel copywriter.
     Based on the following Offer Intelligence, generate high-converting copy for a "${pageType}" page.
     
@@ -132,26 +137,28 @@ export async function generateFunnelCopy(offer: OfferAnalysis, pageType: FunnelP
     Return ONLY JSON.
     `;
 
-    const modelName = process.env.GEMINI_MODEL || "gemini-2.0-flash-001";
+  const modelName = process.env.GEMINI_MODEL || "gemini-2.0-flash-001";
 
-    const response = await ai.models.generateContent({
-        model: modelName,
-        contents: prompt,
-        config: { responseMimeType: "application/json" }
-    });
+  const response = await ai.models.generateContent({
+    model: modelName,
+    contents: prompt,
+    config: { responseMimeType: "application/json" }
+  });
 
-    try {
-         const cleaned = response.text().replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-         return JSON.parse(cleaned);
-    } catch {
-        return {};
-    }
+  if (!response.text) return {};
+
+  try {
+    const cleaned = response.text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    return JSON.parse(cleaned);
+  } catch {
+    return {};
+  }
 }
 
 export async function generatePageLayout(offer: OfferAnalysis, pageType: FunnelPageType, copyData: any): Promise<PageBlock[]> {
-     if (!process.env.GOOGLE_API_KEY) throw new Error("API Key missing");
+  if (!process.env.GOOGLE_API_KEY) throw new Error("API Key missing");
 
-     const prompt = `
+  const prompt = `
      You are a conversion optimization expert and UI designer.
      Map the provided copy to a high-converting page layout using the following block types:
      'hero', 'features', 'pricing', 'testimonials', 'faq', 'cta'.
@@ -174,20 +181,22 @@ export async function generatePageLayout(offer: OfferAnalysis, pageType: FunnelP
      Return ONLY the JSON array.
      `;
 
-      const modelName = process.env.GEMINI_MODEL || "gemini-2.0-flash-001";
+  const modelName = process.env.GEMINI_MODEL!
 
-      const response = await ai.models.generateContent({
-        model: modelName,
-        contents: prompt,
-        config: { responseMimeType: "application/json" }
-    });
+  const response = await ai.models.generateContent({
+    model: modelName,
+    contents: prompt,
+    config: { responseMimeType: "application/json" }
+  });
 
-    try {
-         const cleaned = response.text().replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-         return JSON.parse(cleaned) as PageBlock[];
-    } catch {
-        return [];
-    }
+  if (!response.text) return [];
+
+  try {
+    const cleaned = response.text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    return JSON.parse(cleaned) as PageBlock[];
+  } catch {
+    return [];
+  }
 }
 
 const MOCK_ANALYSIS: OfferAnalysis = {
@@ -213,11 +222,11 @@ const MOCK_ANALYSIS: OfferAnalysis = {
   },
   upsell_structure: {
     recommended_upsells: [
-        { offer_name: "VIP Retreat", price_point: "$5,000", reasoning: "In-person immersion" }
+      { offer_name: "VIP Retreat", price_point: "$5,000", reasoning: "In-person immersion" }
     ]
   },
   bonus_suggestions: [
-      { name: "SOP Toolkit", value_proposition: "Save 20 hours of setup time" }
+    { name: "SOP Toolkit", value_proposition: "Save 20 hours of setup time" }
   ],
   funnel_strategy: {
     recommended_flow: "application",
@@ -240,10 +249,10 @@ const MOCK_ANALYSIS: OfferAnalysis = {
     email_subjects: ["Are you tired yet?", "Invitation inside"],
   },
   funnel_health_score: {
-      clarity: 8,
-      monetization_depth: 7,
-      pricing: 9,
-      overall: 8
+    clarity: 8,
+    monetization_depth: 7,
+    pricing: 9,
+    overall: 8
   },
   recommendations: [
     "Add a stronger guarantee.",
