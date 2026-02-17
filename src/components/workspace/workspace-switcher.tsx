@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { Check, ChevronsUpDown, Building2 } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -31,18 +32,25 @@ interface WorkspaceSwitcherProps {
 }
 
 export function WorkspaceSwitcher({ workspaces }: WorkspaceSwitcherProps) {
+  const router = useRouter()
   const [open, setOpen] = React.useState(false)
-  // For MVP, default to first workspace or null
-  const [selectedWorkspace, setSelectedWorkspace] = React.useState<Workspace | null>(
-    workspaces[0] || null
-  )
-
-  // Sync with local storage or context in a real app
-  React.useEffect(() => {
-    if (selectedWorkspace) {
-        localStorage.setItem("activeWorkspaceId", selectedWorkspace.id)
+  
+  // Get active workspace from localStorage
+  const [selectedWorkspace, setSelectedWorkspace] = React.useState<Workspace | null>(() => {
+    if (typeof window !== 'undefined') {
+      const activeId = localStorage.getItem("activeWorkspaceId")
+      return workspaces.find(w => w.id === activeId) || workspaces[0] || null
     }
-  }, [selectedWorkspace])
+    return workspaces[0] || null
+  })
+
+  const handleSelectWorkspace = (workspace: Workspace) => {
+    setSelectedWorkspace(workspace)
+    localStorage.setItem("activeWorkspaceId", workspace.id)
+    setOpen(false)
+    // Navigate to workspace dashboard
+    router.push(`/workspace/${workspace.id}`)
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -74,10 +82,7 @@ export function WorkspaceSwitcher({ workspaces }: WorkspaceSwitcherProps) {
                 <CommandItem
                   key={workspace.id}
                   value={workspace.name}
-                  onSelect={() => {
-                    setSelectedWorkspace(workspace)
-                    setOpen(false)
-                  }}
+                  onSelect={() => handleSelectWorkspace(workspace)}
                 >
                   <Check
                     className={cn(

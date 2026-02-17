@@ -1,18 +1,17 @@
 import { getWorkspaces } from "@/app/actions/workspace"
 import { WorkspaceCard } from "@/components/workspace/workspace-card"
 import { CreateWorkspaceDialog } from "@/components/workspace/create-workspace-dialog"
-import { PlusCircle } from "lucide-react"
 
-export default async function DashboardPage() {
+export default async function WorkspacesPage() {
   const workspaces = await getWorkspaces()
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">My Workspaces</h2>
+          <h2 className="text-3xl font-bold tracking-tight">All Workspaces</h2>
           <p className="text-muted-foreground">
-            Manage your workspaces and access your sales content
+            View and manage all your workspaces
           </p>
         </div>
         <CreateWorkspaceDialog />

@@ -7,13 +7,13 @@ import { redirect } from "next/navigation"
 
 export async function getWorkspaces() {
   const session = await getSession()
-  
+
   if (!session?.user?.email) {
-      return []
+    return []
   }
 
   const supabase = createAdminClient()
-  
+
   // We assume user identifier is email for now or id if stable
   const userId = session.user.id || session.user.email
 
@@ -31,10 +31,35 @@ export async function getWorkspaces() {
   return workspaces
 }
 
+export async function getWorkspaceById(workspaceId: string) {
+  const session = await getSession()
+
+  if (!session?.user?.email) {
+    return null
+  }
+
+  const supabase = createAdminClient()
+  const userId = session.user.id || session.user.email
+
+  const { data: workspace, error } = await supabase
+    .from('workspaces')
+    .select('*')
+    .eq('id', workspaceId)
+    .eq('user_id', userId)
+    .single()
+
+  if (error) {
+    console.error('Error fetching workspace:', error)
+    return null
+  }
+
+  return workspace
+}
+
 export async function createWorkspace(formData: FormData) {
   const session = await getSession()
   if (!session?.user) {
-      redirect('/login')
+    redirect('/login')
   }
 
   const supabase = createAdminClient()

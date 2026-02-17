@@ -7,6 +7,7 @@ const ai = new GoogleGenAI({
 
 import { FunnelPageType, PageBlock } from "@/types/builder";
 
+
 const SYSTEM_PROMPT = `
 You are the world's best direct response copywriter and offer strategist (think Alex Hormozi meets Ogilvy). 
 Your goal is to analyze raw offer inputs and generate a structured "Offer Intelligence Report".
@@ -64,6 +65,7 @@ You must output valid JSON matching the following schema:
 Analyze deeply. Be critical. Focus on conversion and monetization.
 Return ONLY the JSON object, no markdown formatting.
 `;
+
 
 export async function analyzeOffer(content: string): Promise<OfferAnalysis> {
   if (!process.env.GOOGLE_API_KEY) {
