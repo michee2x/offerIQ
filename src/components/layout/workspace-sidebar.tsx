@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useParams } from "next/navigation"
-import { BarChart3, Home, FileText, Workflow, FilePenLine, Settings, Bell } from "lucide-react"
+import { BarChart3, Home, FileText, Workflow, FilePenLine, Settings, Bell, LayoutDashboard } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -13,19 +13,20 @@ interface WorkspaceSidebarProps {
   currentWorkspace: any
 }
 
-const workspaceSidebarItems = [
-  { name: "Overview", href: "", icon: Home },
-  { name: "Sales Pages", href: "/sales-pages", icon: FileText },
-  { name: "Funnels", href: "/funnels", icon: Workflow },
-  { name: "Drafts", href: "/drafts", icon: FilePenLine },
-  { name: "Notifications", href: "/notifications", icon: Bell },
-  { name: "Settings", href: "/settings", icon: Settings },
-]
-
 export function WorkspaceSidebar({ workspaces, currentWorkspace }: WorkspaceSidebarProps) {
   const pathname = usePathname()
   const params = useParams()
   const workspaceId = params?.workspaceId as string
+
+  const navItems = [
+    { name: 'Overview', href: `/workspace/${workspaceId}`, icon: LayoutDashboard },
+    { name: 'Sales Reports', href: `/workspace/${workspaceId}/sales-reports`, icon: FileText },
+    { name: 'Sales Pages', href: `/workspace/${workspaceId}/sales-pages`, icon: FileText },
+    { name: 'Funnels', href: `/workspace/${workspaceId}/funnels`, icon: Workflow },
+    { name: 'Drafts', href: `/workspace/${workspaceId}/drafts`, icon: FilePenLine },
+    { name: 'Notifications', href: `/workspace/${workspaceId}/notifications`, icon: Bell },
+    { name: 'Settings', href: `/workspace/${workspaceId}/settings`, icon: Settings },
+  ]
 
   return (
     <div className="hidden border-r bg-muted/40 md:block w-[220px] lg:w-[280px] h-screen sticky top-0 overflow-y-auto">
@@ -43,9 +44,8 @@ export function WorkspaceSidebar({ workspaces, currentWorkspace }: WorkspaceSide
 
         <div className="flex-1 py-0">
           <nav className="grid items-start px-2 text-sm font-medium lg:px-4 gap-1">
-            {workspaceSidebarItems.map((item) => {
-              const href = `/workspace/${workspaceId}${item.href}`
-              const isActive = pathname === href
+            {navItems.map((item) => {
+              const isActive = pathname === item.href
               
               return (
                 <Button
@@ -57,7 +57,7 @@ export function WorkspaceSidebar({ workspaces, currentWorkspace }: WorkspaceSide
                     isActive && "bg-secondary"
                   )}
                 >
-                  <Link href={href}>
+                  <Link href={item.href}>
                     <item.icon className="h-4 w-4" />
                     {item.name}
                   </Link>
