@@ -3,7 +3,7 @@
  */
 export async function extractPDFText(file: File): Promise<string> {
   try {
-    const pdfParse = (await import('pdf-parse')).default
+    const pdfParse = require('pdf-parse')
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
 
@@ -80,69 +80,6 @@ export async function transcribeAudio(
     console.error('Transcription error:', error)
     throw new Error('Failed to transcribe audio')
   }
-}
-
-/**
- * Generate summary of extracted content using AI
- */
-export async function generateContentSummary(
-  content: string,
-  apiKey: string
-): Promise<string> {
-  try {
-    // Chunk content if too long (max 4000 tokens ≈ 16000 chars)
-    const chunks = chunkText(content, 16000)
-
-    const summaries = await Promise.all(
-      chunks.map(chunk => summarizeChunk(chunk, apiKey))
-    )
-
-    // If multiple chunks, combine and summarize again
-    if (summaries.length > 1) {
-      const combined = summaries.join('\n\n')
-      return await summarizeChunk(combined, apiKey)
-    }
-
-    return summaries[0]
-  } catch (error) {
-    console.error('Summary generation error:', error)
-    throw new Error('Failed to generate summary')
-  }
-}
-
-/**
- * Summarize a single chunk of text
- */
-async function summarizeChunk(text: string, apiKey: string): Promise<string> {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'Extract key topics, main points, structure, and important details from the content. Be comprehensive but concise.'
-        },
-        {
-          role: 'user',
-          content: text
-        }
-      ],
-      temperature: 0.3,
-      max_tokens: 1000
-    })
-  })
-
-  if (!response.ok) {
-    throw new Error(`Summary API failed: ${response.statusText}`)
-  }
-
-  const data = await response.json()
-  return data.choices[0].message.content
 }
 
 /**

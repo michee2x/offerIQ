@@ -1,233 +1,270 @@
+import { GoogleGenAI } from "@google/genai"
 import { SECTION_METADATA, type ReportSection } from '@/types/sales-report'
 import type { OfferContext } from '@/types/sales-report'
 
+const ai = new GoogleGenAI({
+  apiKey: process.env.GOOGLE_API_KEY || "",
+})
+
 /**
- * Generate sales report using AI
+ * Generate sales report using Gemini AI (OPTIMIZED - Parallel generation)
  */
 export async function generateSalesReport(
-    offerContext: OfferContext,
-    fileSummaries: string[],
-    apiKey: string
+  offerContext: OfferContext,
+  fileSummaries: string[]
 ): Promise<string> {
-    const contextPrompt = buildContextPrompt(offerContext, fileSummaries)
+  const contextPrompt = buildContextPrompt(offerContext, fileSummaries)
+  const modelName = process.env.GEMINI_MODEL || "gemini-2.0-flash-exp"
 
-    let fullReport = `# Sales Report: ${offerContext.product_name}\n\n`
-    fullReport += `*Generated on ${new Date().toLocaleDateString()}*\n\n`
+  let fullReport = `# Sales Report: ${offerContext.product_name}\n\n`
+  fullReport += `*Generated on ${new Date().toLocaleDateString()}*\n\n`
+  fullReport += `---\n\n`
+
+  // Generate ALL sections in PARALLEL for speed
+  const sections = Object.keys(SECTION_METADATA) as ReportSection[]
+  
+  console.log(`🚀 Generating ${sections.length} sections in parallel using Gemini...`)
+  
+  const sectionPromises = sections.map(section => 
+    generateReportSection(
+      section,
+      SECTION_METADATA[section],
+      contextPrompt,
+      modelName
+    )
+  )
+
+  // Wait for all sections to complete
+  const sectionContents = await Promise.all(sectionPromises)
+
+  // Build the full report
+  sections.forEach((section, index) => {
+    const sectionData = SECTION_METADATA[section]
+    fullReport += `## ${sectionData.icon} ${sectionData.title}\n\n`
+    fullReport += `${sectionContents[index]}\n\n`
     fullReport += `---\n\n`
+  })
 
-    // Generate each section
-    for (const section of Object.keys(SECTION_METADATA) as ReportSection[]) {
-        const sectionData = SECTION_METADATA[section]
-        const sectionContent = await generateReportSection(
-            section,
-            sectionData,
-            contextPrompt,
-            apiKey
-        )
-
-        fullReport += `## ${sectionData.icon} ${sectionData.title}\n\n`
-        fullReport += `${sectionContent}\n\n`
-        fullReport += `---\n\n`
-    }
-
-    return fullReport
+  console.log(`✅ Report generation complete!`)
+  return fullReport
 }
 
 /**
- * Generate a single report section
+ * Generate a single report section using Gemini
  */
 async function generateReportSection(
-    section: ReportSection,
-    sectionData: any,
-    contextPrompt: string,
-    apiKey: string
+  section: ReportSection,
+  sectionData: any,
+  contextPrompt: string,
+  modelName: string
 ): Promise<string> {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-            model: 'gpt-4o',
-            messages: [
-                {
-                    role: 'system',
-                    content: `You are a world-class Revenue Consultant and Marketing Strategist. You provide deep, actionable insights that transform offers into high-converting revenue engines. Be specific, strategic, and data-informed.`
-                },
-                {
-                    role: 'user',
-                    content: `${contextPrompt}\n\n${sectionData.prompt}\n\nProvide a comprehensive analysis in markdown format. Use bullet points, subheadings, and clear structure. Be specific and actionable.`
-                }
-            ],
-            temperature: 0.7,
-            max_tokens: 1500
-        })
+  try {
+    const systemPrompt = `You are a world-class Revenue Consultant and Marketing Strategist. You provide deep, actionable insights that transform offers into high-converting revenue engines. Be specific, strategic, and data-informed.`
+
+    const userPrompt = `${contextPrompt}\n\n${sectionData.prompt}\n\nProvide a comprehensive analysis in markdown format. Use bullet points, subheadings, and clear structure. Be specific and actionable.`
+
+    const response = await ai.models.generateContent({
+      model: modelName,
+      contents: `${systemPrompt}\n\n${userPrompt}`,
+      config: {
+        temperature: 0.7,
+        maxOutputTokens: 1500,
+      },
     })
 
-    if (!response.ok) {
-        throw new Error(`AI generation failed: ${response.statusText}`)
+    if (!response.text) {
+      throw new Error('No text in response')
     }
 
-    const data = await response.json()
-    return data.choices[0].message.content
-}
-
-/**
- * Generate report with streaming
- */
-export async function generateSalesReportStreaming(
-    offerContext: OfferContext,
-    fileSummaries: string[],
-    apiKey: string,
-    onProgress: (section: ReportSection, content: string) => void
-): Promise<string> {
-    const contextPrompt = buildContextPrompt(offerContext, fileSummaries)
-
-    let fullReport = `# Sales Report: ${offerContext.product_name}\n\n`
-    fullReport += `*Generated on ${new Date().toLocaleDateString()}*\n\n`
-    fullReport += `---\n\n`
-
-    const sections = Object.keys(SECTION_METADATA) as ReportSection[]
-
-    for (let i = 0; i < sections.length; i++) {
-        const section = sections[i]
-        const sectionData = SECTION_METADATA[section]
-
-        const sectionContent = await generateReportSection(
-            section,
-            sectionData,
-            contextPrompt,
-            apiKey
-        )
-
-        const sectionMarkdown = `## ${sectionData.icon} ${sectionData.title}\n\n${sectionContent}\n\n---\n\n`
-        fullReport += sectionMarkdown
-
-        // Call progress callback
-        onProgress(section, fullReport)
-    }
-
-    return fullReport
+    return response.text
+  } catch (error) {
+    console.error(`Error generating section ${section}:`, error)
+    return `*Error generating this section. Please try regenerating.*`
+  }
 }
 
 /**
  * Regenerate a specific section
  */
 export async function regenerateReportSection(
-    section: ReportSection,
-    offerContext: OfferContext,
-    fileSummaries: string[],
-    additionalInstructions: string,
-    apiKey: string
+  section: ReportSection,
+  offerContext: OfferContext,
+  fileSummaries: string[],
+  additionalInstructions: string
 ): Promise<string> {
-    const contextPrompt = buildContextPrompt(offerContext, fileSummaries)
-    const sectionData = SECTION_METADATA[section]
+  const contextPrompt = buildContextPrompt(offerContext, fileSummaries)
+  const sectionData = SECTION_METADATA[section]
+  const modelName = process.env.GEMINI_MODEL || "gemini-2.0-flash-exp"
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-            model: 'gpt-4o',
-            messages: [
-                {
-                    role: 'system',
-                    content: `You are a world-class Revenue Consultant and Marketing Strategist.`
-                },
-                {
-                    role: 'user',
-                    content: `${contextPrompt}\n\n${sectionData.prompt}\n\nAdditional Instructions: ${additionalInstructions}\n\nProvide a comprehensive analysis in markdown format.`
-                }
-            ],
-            temperature: 0.7,
-            max_tokens: 1500
-        })
-    })
+  const systemPrompt = `You are a world-class Revenue Consultant and Marketing Strategist.`
+  const userPrompt = `${contextPrompt}\n\n${sectionData.prompt}\n\nAdditional Instructions: ${additionalInstructions}\n\nProvide a comprehensive analysis in markdown format.`
 
-    if (!response.ok) {
-        throw new Error(`AI generation failed: ${response.statusText}`)
-    }
+  const response = await ai.models.generateContent({
+    model: modelName,
+    contents: `${systemPrompt}\n\n${userPrompt}`,
+    config: {
+      temperature: 0.7,
+      maxOutputTokens: 1500,
+    },
+  })
 
-    const data = await response.json()
-    return data.choices[0].message.content
+  if (!response.text) {
+    throw new Error('No text in response')
+  }
+
+  return response.text
 }
 
 /**
  * Build context prompt from offer context and file summaries
  */
 function buildContextPrompt(
-    offerContext: OfferContext,
-    fileSummaries: string[]
+  offerContext: OfferContext,
+  fileSummaries: string[]
 ): string {
-    let prompt = `## Offer Context\n\n`
-    prompt += `**Product Name:** ${offerContext.product_name}\n`
-    prompt += `**Category:** ${offerContext.category}\n`
-    prompt += `**Target Audience:** ${offerContext.target_audience}\n`
-    prompt += `**Main Problem Solved:** ${offerContext.main_problem}\n`
-    prompt += `**Price Point:** ${offerContext.price_point}\n`
-    prompt += `**Geographic Focus:** ${offerContext.geographic_focus}\n`
-    prompt += `**Unique Selling Proposition:** ${offerContext.usp}\n\n`
+  let prompt = `## Offer Context\n\n`
+  prompt += `**Product Name:** ${offerContext.product_name}\n`
+  prompt += `**Category:** ${offerContext.category}\n`
+  prompt += `**Target Audience:** ${offerContext.target_audience}\n`
+  prompt += `**Main Problem Solved:** ${offerContext.main_problem}\n`
+  prompt += `**Price Point:** ${offerContext.price_point}\n`
+  prompt += `**Geographic Focus:** ${offerContext.geographic_focus}\n`
+  prompt += `**Unique Selling Proposition:** ${offerContext.usp}\n\n`
 
-    if (offerContext.key_features && offerContext.key_features.length > 0) {
-        prompt += `**Key Features:**\n`
-        offerContext.key_features.forEach(feature => {
-            prompt += `- ${feature}\n`
-        })
-        prompt += `\n`
-    }
+  if (offerContext.key_features && offerContext.key_features.length > 0) {
+    prompt += `**Key Features:**\n`
+    offerContext.key_features.forEach(feature => {
+      prompt += `- ${feature}\n`
+    })
+    prompt += `\n`
+  }
 
-    if (offerContext.additional_context) {
-        prompt += `**Additional Context:** ${offerContext.additional_context}\n\n`
-    }
+  if (offerContext.additional_context) {
+    prompt += `**Additional Context:** ${offerContext.additional_context}\n\n`
+  }
 
-    if (fileSummaries.length > 0) {
-        prompt += `## Content Summaries\n\n`
-        fileSummaries.forEach((summary, index) => {
-            prompt += `### File ${index + 1}\n${summary}\n\n`
-        })
-    }
+  if (fileSummaries.length > 0) {
+    prompt += `## Content Summaries\n\n`
+    fileSummaries.forEach((summary, index) => {
+      prompt += `### File ${index + 1}\n${summary}\n\n`
+    })
+  }
 
-    return prompt
+  return prompt
 }
 
 /**
  * Refine report section with AI assistant
  */
 export async function refineReportSection(
-    currentContent: string,
-    userMessage: string,
-    apiKey: string
+  currentContent: string,
+  userMessage: string
 ): Promise<string> {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-            model: 'gpt-4o',
-            messages: [
-                {
-                    role: 'system',
-                    content: 'You are a helpful AI assistant that refines sales report sections based on user feedback. Maintain the markdown format and structure.'
-                },
-                {
-                    role: 'user',
-                    content: `Current section content:\n\n${currentContent}\n\nUser request: ${userMessage}\n\nProvide the refined version of this section.`
-                }
-            ],
-            temperature: 0.7,
-            max_tokens: 1500
-        })
-    })
+  const modelName = process.env.GEMINI_MODEL || "gemini-2.0-flash-exp"
 
-    if (!response.ok) {
-        throw new Error(`AI refinement failed: ${response.statusText}`)
+  const systemPrompt = 'You are a helpful AI assistant that refines sales report sections based on user feedback. Maintain the markdown format and structure.'
+  const userPrompt = `Current section content:\n\n${currentContent}\n\nUser request: ${userMessage}\n\nProvide the refined version of this section.`
+
+  const response = await ai.models.generateContent({
+    model: modelName,
+    contents: `${systemPrompt}\n\n${userPrompt}`,
+    config: {
+      temperature: 0.7,
+      maxOutputTokens: 1500,
+    },
+  })
+
+  if (!response.text) {
+    throw new Error('No text in response')
+  }
+
+  return response.text
+}
+
+/**
+ * Generate content summary using Gemini
+ */
+export async function generateContentSummary(content: string): Promise<string> {
+  const modelName = process.env.GEMINI_MODEL || "gemini-2.0-flash-exp"
+
+  // Chunk content if too long (max 30000 chars for Gemini)
+  const chunks = chunkText(content, 30000)
+  
+  const summaries = await Promise.all(
+    chunks.map(chunk => summarizeChunk(chunk, modelName))
+  )
+
+  // If multiple chunks, combine and summarize again
+  if (summaries.length > 1) {
+    const combined = summaries.join('\n\n')
+    return await summarizeChunk(combined, modelName)
+  }
+
+  return summaries[0]
+}
+
+/**
+ * Summarize a single chunk of text
+ */
+async function summarizeChunk(text: string, modelName: string): Promise<string> {
+  const systemPrompt = 'Extract key topics, main points, structure, and important details from the content. Be comprehensive but concise.'
+
+  const response = await ai.models.generateContent({
+    model: modelName,
+    contents: `${systemPrompt}\n\n${text}`,
+    config: {
+      temperature: 0.3,
+      maxOutputTokens: 1000,
+    },
+  })
+
+  if (!response.text) {
+    throw new Error('No summary generated')
+  }
+
+  return response.text
+}
+
+/**
+ * Chunk text into smaller pieces
+ */
+function chunkText(text: string, maxChars: number): string[] {
+  const chunks: string[] = []
+  let currentChunk = ''
+
+  const paragraphs = text.split('\n\n')
+
+  for (const paragraph of paragraphs) {
+    if ((currentChunk + paragraph).length > maxChars) {
+      if (currentChunk) {
+        chunks.push(currentChunk.trim())
+        currentChunk = ''
+      }
+
+      // If single paragraph is too long, split by sentences
+      if (paragraph.length > maxChars) {
+        const sentences = paragraph.match(/[^.!?]+[.!?]+/g) || [paragraph]
+        for (const sentence of sentences) {
+          if ((currentChunk + sentence).length > maxChars) {
+            if (currentChunk) {
+              chunks.push(currentChunk.trim())
+            }
+            currentChunk = sentence
+          } else {
+            currentChunk += sentence
+          }
+        }
+      } else {
+        currentChunk = paragraph
+      }
+    } else {
+      currentChunk += (currentChunk ? '\n\n' : '') + paragraph
     }
+  }
 
-    const data = await response.json()
-    return data.choices[0].message.content
+  if (currentChunk) {
+    chunks.push(currentChunk.trim())
+  }
+
+  return chunks
 }

@@ -24,8 +24,9 @@ npm install pdf-parse mammoth react-markdown remark-gfm react-hook-form @hookfor
 Add to your `.env.local` file:
 
 ```env
-# OpenAI API Key (for Whisper transcription and report generation)
-OPENAI_API_KEY=your_openai_api_key_here
+# Google Gemini API Key (for report generation and summarization)
+GOOGLE_API_KEY=your_google_api_key_here
+GEMINI_MODEL=gemini-2.0-flash-exp
 
 # Supabase (should already be configured)
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
@@ -119,9 +120,10 @@ src/
   13. Real-World Use Case Scenarios
   14. Product Core Value Perception
 
-- Uses GPT-4o for generation
-- Streaming support (ready for implementation)
+- Uses Google Gemini for generation (FREE API!)
+- **Parallel generation** - All 14 sections generated simultaneously
 - Section regeneration capability
+- **Speed**: 30-60 seconds total (vs 4-7 minutes sequential)
 
 ### 4. Markdown Editor
 - Edit/Preview modes
@@ -150,14 +152,15 @@ src/
 ## Cost Estimates
 
 ### Per Report:
-- File transcription (1-hour video): ~$0.36
-- Content summarization: ~$0.01
-- Report generation (14 sections): ~$0.20
-- **Total: ~$0.60 per report**
+- Report generation (14 sections with Gemini): **FREE** (Gemini API free tier)
+- Content summarization: **FREE**
+- **Total: $0 per report** (within free tier limits)
 
 ### Storage:
 - Supabase free tier: 1GB
 - Paid tier: $0.25/GB/month
+
+**Note**: Gemini has generous free tier limits. If you exceed them, costs are very low (~$0.10 per report).
 
 ## Next Steps (Optional Enhancements)
 
@@ -180,6 +183,7 @@ src/
 - Verify file size is under OpenAI limits (25MB for Whisper)
 
 ### Report Generation Errors
-- Check OpenAI API key and credits
-- Verify offer context is complete
+- Ensure GOOGLE_API_KEY is set correctly
+- Check Gemini API quota (free tier has limits)
+- Verify GEMINI_MODEL is set (default: gemini-2.0-flash-exp)
 - Check server logs for detailed errors

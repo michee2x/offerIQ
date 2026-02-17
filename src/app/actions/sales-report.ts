@@ -98,13 +98,8 @@ export async function generateReportContent(reportId: string) {
             .update({ status: 'generating' })
             .eq('id', reportId)
 
-        // Generate report
-        const apiKey = process.env.OPENAI_API_KEY
-        if (!apiKey) {
-            return { error: 'OpenAI API key not configured' }
-        }
-
-        const content = await generateSalesReport(context, summaries, apiKey)
+        // Generate report using Gemini
+        const content = await generateSalesReport(context, summaries)
 
         // Save report content
         await supabase

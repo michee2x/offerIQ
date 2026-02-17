@@ -136,12 +136,12 @@ async function processFileExtraction(fileId: string) {
             }
         }
 
-        // Generate summary
-        const apiKey = process.env.OPENAI_API_KEY
-        let summary = ''
-        if (apiKey && extractedContent) {
-            summary = await generateContentSummary(extractedContent, apiKey)
-        }
+        // Generate summary using Gemini
+    let summary = ''
+    if (extractedContent) {
+      const { generateContentSummary } = await import('@/lib/report-generation')
+      summary = await generateContentSummary(extractedContent)
+    }
 
         // Update file record with extracted content
         await supabase
