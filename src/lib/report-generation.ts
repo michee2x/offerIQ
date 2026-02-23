@@ -22,10 +22,10 @@ export async function generateSalesReport(
 
   // Generate ALL sections in PARALLEL for speed
   const sections = Object.keys(SECTION_METADATA) as ReportSection[]
-  
+
   console.log(`🚀 Generating ${sections.length} sections in parallel using Gemini...`)
-  
-  const sectionPromises = sections.map(section => 
+
+  const sectionPromises = sections.map(section =>
     generateReportSection(
       section,
       SECTION_METADATA[section],
@@ -59,7 +59,7 @@ async function generateReportSection(
   modelName: string
 ): Promise<string> {
   try {
-    const systemPrompt = `You are a world-class Revenue Consultant and Marketing Strategist. You provide deep, actionable insights that transform offers into high-converting revenue engines. Be specific, strategic, and data-informed.`
+    const systemPrompt = `You are a world-class Revenue Consultant and Marketing Strategist. You provide deep, actionable insights that transform offers into high-converting revenue engines. Be specific, strategic, and data-informed. Provide your response in clear, fluent, professional English using straightforward language that is easy to comprehend without unnecessary jargon. NEVER use any emojis in your response.`
 
     const userPrompt = `${contextPrompt}\n\n${sectionData.prompt}\n\nProvide a comprehensive analysis in markdown format. Use bullet points, subheadings, and clear structure. Be specific and actionable.`
 
@@ -96,7 +96,7 @@ export async function regenerateReportSection(
   const sectionData = SECTION_METADATA[section]
   const modelName = process.env.GEMINI_MODEL || "gemini-2.0-flash-exp"
 
-  const systemPrompt = `You are a world-class Revenue Consultant and Marketing Strategist.`
+  const systemPrompt = `You are a world-class Revenue Consultant and Marketing Strategist. Provide your response in clear, fluent, professional English using straightforward language that is easy to comprehend without unnecessary jargon. NEVER use any emojis in your response.`
   const userPrompt = `${contextPrompt}\n\n${sectionData.prompt}\n\nAdditional Instructions: ${additionalInstructions}\n\nProvide a comprehensive analysis in markdown format.`
 
   const response = await ai.models.generateContent({
@@ -162,7 +162,7 @@ export async function refineReportSection(
 ): Promise<string> {
   const modelName = process.env.GEMINI_MODEL || "gemini-2.0-flash-exp"
 
-  const systemPrompt = 'You are a helpful AI assistant that refines sales report sections based on user feedback. Maintain the markdown format and structure.'
+  const systemPrompt = 'You are a helpful AI assistant that refines sales report sections based on user feedback. Maintain the markdown format and structure. Provide your response in clear, fluent, professional English using straightforward language that is easy to comprehend without unnecessary jargon. NEVER use any emojis in your response.'
   const userPrompt = `Current section content:\n\n${currentContent}\n\nUser request: ${userMessage}\n\nProvide the refined version of this section.`
 
   const response = await ai.models.generateContent({
@@ -189,7 +189,7 @@ export async function generateContentSummary(content: string): Promise<string> {
 
   // Chunk content if too long (max 30000 chars for Gemini)
   const chunks = chunkText(content, 30000)
-  
+
   const summaries = await Promise.all(
     chunks.map(chunk => summarizeChunk(chunk, modelName))
   )

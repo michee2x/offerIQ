@@ -1,0 +1,87 @@
+# Sales Report Generation Tutorial & Deep Dive
+
+This document explains specifically how a Sales Report is generated, stored, and rendered so that you understand the underlying format that powers both the current UI and the future WYSIWYG editor you want to build.
+
+---
+
+## 1. The Big Picture: How it Works End-to-End
+
+1. **User Input:** A user provides a title, optional files (PDFs/videos), and context (audience, price, etc.).
+2. **Draft Creation:** A blank report is created in Supabase with a `draft` status.
+3. **AI Generation:** The backend (`generateSalesReport`) takes the context and file summaries, sends them to Gemini AI in *parallel* for all report sections, and gets text back.
+4. **Storage Format (The Intermediate Representation):** The generated text is stitched together into a **single Markdown (`.md`) string** and saved directly to the database in the `content` field.
+5. **Rendering:** When you view the report, the Next.js frontend retrieves this Markdown string and uses `ReactMarkdown` to translate it into standard HTML (`h1`, `p`, `li`) for the browser to display.
+
+---
+
+## 2. Text Flow Diagram
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant NextJS_Frontend
+    participant NextJS_Server_Action
+    participant Supabase_DB
+    participant Gemini_AI
+
+    User->>NextJS_Frontend: Submits "Create Report"
+    NextJS_Frontend->>NextJS_Server_Action: createSalesReport()
+    NextJS_Server_Action->>Supabase_DB: Insert { status: 'draft', content: '' }
+    NextJS_Server_Action->>NextJS_Frontend: Returns report ID
+    
+    NextJS_Frontend->>NextJS_Server_Action: generateReportContent(reportId)
+    NextJS_Server_Action-->>Gemini_AI: Parallel requests for each section (e.g. Hooks, Personas)
+    Gemini_AI-->>NextJS_Server_Action: Returns raw Markdown strings
+    NextJS_Server_Action->>NextJS_Server_Action: Stitches Markdown together
+    NextJS_Server_Action->>Supabase_DB: Update { status: 'complete', content: '# Sales Report...' }
+    
+    NextJS_Frontend->>Supabase_DB: getSalesReport()
+    Supabase_DB-->>NextJS_Frontend: Returns Markdown string
+    NextJS_Frontend->>NextJS_Frontend: ReactMarkdown converts Markdown -> HTML
+    NextJS_Frontend-->>User: Renders styled HTML elements on screen
+```
+
+---
+
+## 3. Demystifying the "Intermediate Representation"
+
+> **Crucial Concept:** The source of truth for your page is purely **Markdown text**.
+
+There is no complex JSON tree (like Draft.js uses) or raw HTML stored in the database. When the page is "generated", Gemini just outputs text that looks like this:
+
+```markdown
+# Sales Report: StoryVlog
+*Generated on 2/23/2026*
+---
+## Market Positioning
+This is a breakthrough product...
+```
+
+### Why does this matter for your WYSIWYG editor?
+Since the text is stored as Markdown, but you want a UI like Figma or Notion (where you click on a bold subheader and edit it directly), you need tools that bridge the gap:
+
+1. **The Backend (Supabase):** Keeps storing simple Markdown text.
+2. **The Editor (e.g., Tiptap):** Operates using an internal JSON schema representing HTML nodes.
+3. **The Bridge:** When the page loads, you must parse the raw Markdown into HTML/JSON so the editor can display it cleanly. When the user hits "Save", you must serialize the editor's HTML/JSON *back* into Markdown to save to the database.
+
+### What the user interacts with: HTML
+When the user clicks an element to make changes (with an AI panel or manual typing), they are interacting with the HTML Document Object Model (DOM).
+
+For example, `## Market Positioning` becomes `<h2>Market Positioning</h2>`. When you integrate Tiptap (the WYSIWYG editor), it takes over that `<h2>` tag, listens for your keystrokes, updates its internal state, and instantly updates the DOM so it feels like a native text editor.
+
+---
+
+## 4. How to implement the new WYSIWYG UI
+
+Since you requested no automated installations, you will need to manually run this in your terminal to set up the foundation for the modular, clean editor:
+
+```bash
+npm install @tiptap/react @tiptap/starter-kit marked turndown
+npm install -D @types/marked @types/turndown
+```
+
+- **@tiptap/react & @tiptap/starter-kit:** The core editor logic. It provides the clean, inline editing experience you want.
+- **marked:** A library that will reliably take the AI-generated Markdown from your database and turn it into standard HTML that Tiptap can consume on initial load.
+- **turndown:** The exact opposite. When a user edits the nice UI and clicks save, `turndown` grabs the HTML from Tiptap and spits out the raw Markdown string that your database expects.
+
+By maintaining Markdown as your database format, you keep your AI generation code incredibly simple (AI relates best to generating Markdown), while delivering a premium, Figma-like text editing experience to your users.
