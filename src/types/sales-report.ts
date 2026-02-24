@@ -115,86 +115,86 @@ export interface ReportSectionData {
 export const SECTION_METADATA: Record<ReportSection, ReportSectionData> = {
   positioning: {
     title: 'Offer Positioning Analysis',
-    icon: '',
-    description: 'How your offer should be positioned in the market to own a category',
-    prompt: 'Analyze the market positioning for this offer and provide strategic recommendations for category ownership. Use clear, simple, professional English without jargon. Do not use any emojis.'
+    icon: '📊',
+    description: 'How your offer should be positioned in the market to own a category instead of competing in one',
+    prompt: 'Provide a concise, high-impact analysis of the market positioning for this offer. Give strategic recommendations for category ownership.'
   },
   revenue_model: {
     title: 'Revenue Model Architecture',
-    icon: '',
-    description: 'The exact pricing structure, payment options, and monetization model',
-    prompt: 'Design the optimal revenue model including pricing structure and payment options. Use clear, simple, professional English without jargon. Do not use any emojis.'
+    icon: '💰',
+    description: 'The exact pricing structure, payment options, and monetization model your offer requires',
+    prompt: 'Provide a extremely concise, structured outline of the optimal revenue model including pricing structure and payment options.'
   },
   target_persona: {
     title: 'Target Persona Intelligence',
-    icon: '',
-    description: 'Deep persona analysis: demographics, psychographics, buying behavior',
-    prompt: 'Create a detailed target persona analysis including demographics, psychographics, and decision triggers. Use clear, simple, professional English without jargon. Do not use any emojis.'
+    icon: '🎯',
+    description: 'Deep persona analysis: demographics, psychographics, buying behavior, decision triggers',
+    prompt: 'Provide a structured, bulleted breakdown of the target persona including demographics, psychographics, and decision triggers. Make it concise.'
   },
   pain_points: {
     title: 'Pain Point Mapping',
-    icon: '',
-    description: 'The real friction points your persona experiences',
-    prompt: 'Map the deep pain points and friction your target persona experiences. Use clear, simple, professional English without jargon. Do not use any emojis.'
+    icon: '🔥',
+    description: 'The real friction points your persona experiences (not surface-level complaints)',
+    prompt: 'Map the deep pain points and friction your target persona experiences. Use bullet points and keep analysis brief and impactful.'
   },
   conversion_hooks: {
     title: 'Conversion Hook Library',
-    icon: '',
-    description: 'Specific hooks engineered to eliminate buying resistance',
-    prompt: 'Generate conversion hooks specifically designed to eliminate buying resistance for this offer. Use clear, simple, professional English without jargon. Do not use any emojis.'
+    icon: '🧲',
+    description: 'Specific hooks engineered to eliminate buying resistance for THIS offer',
+    prompt: 'Generate 3-5 specific conversion hooks engineered to eliminate buying resistance for this offer. Keep it highly concise.'
   },
   funnel_structure: {
     title: 'Funnel Structure Blueprint',
-    icon: '',
-    description: 'The exact funnel flow optimized for your offer\'s economics',
-    prompt: 'Design the optimal funnel structure and flow for this offer. Use clear, simple, professional English without jargon. Do not use any emojis.'
+    icon: '📈',
+    description: 'The exact funnel flow optimized for your offer\'s economics (not generic templates)',
+    prompt: 'Design a highly concise, step-by-step funnel structure and flow optimized for this specific offer. Avoid fluff.'
   },
   pricing_strategy: {
     title: 'Pricing Strategy',
-    icon: '',
+    icon: '💎',
     description: 'Recommended price points, payment plans, and anchoring tactics',
-    prompt: 'Develop a comprehensive pricing strategy including price points and anchoring tactics. Use clear, simple, professional English without jargon. Do not use any emojis.'
+    prompt: 'Outline a brief, structured pricing strategy including price points and anchoring tactics. Be explicit and concise.'
   },
   upsell_downsell: {
     title: 'Upsell/Downsell Paths',
-    icon: '',
-    description: 'Natural revenue expansion paths that increase LTV',
-    prompt: 'Design upsell and downsell paths to maximize lifetime value. Use clear, simple, professional English without jargon. Do not use any emojis.'
+    icon: '🚀',
+    description: 'Natural revenue expansion paths that increase LTV without friction',
+    prompt: 'Provide a highly concise map of upsell and downsell paths to maximize lifetime value.'
   },
   strategic_bonuses: {
     title: 'Strategic Bonus Recommendations',
-    icon: '',
-    description: 'Bonuses designed to increase perceived value',
-    prompt: 'Recommend strategic bonuses that increase perceived value and eliminate objections. Use clear, simple, professional English without jargon. Do not use any emojis.'
+    icon: '🎁',
+    description: 'Bonuses designed to increase perceived value and eliminate objections',
+    prompt: 'Recommend 2-4 strategic bonuses that increase value and eliminate objections. Be concise.'
   },
   messaging_angles: {
     title: 'Messaging Angle Matrix',
-    icon: '',
+    icon: '✍️',
     description: 'The exact angles to lead with based on persona psychology',
-    prompt: 'Create a messaging angle matrix based on target persona psychology. Use clear, simple, professional English without jargon. Do not use any emojis.'
+    prompt: 'Create a highly concise, bulleted messaging angle matrix based on target persona psychology.'
   },
   funnel_health: {
     title: 'Funnel Health Score',
-    icon: '',
+    icon: '📉',
     description: 'Predicted conversion performance and revenue leakage points',
-    prompt: 'Analyze and score the predicted funnel health and identify potential leakage points. Use clear, simple, professional English without jargon. Do not use any emojis.'
+    prompt: 'Provide a concise assessment of predicted funnel health and identify 1-3 specific potential leakage points.'
   },
   monetization_narrative: {
     title: 'Monetization Strategy Narrative',
-    icon: '',
+    icon: '🧠',
     description: 'Strategic reasoning behind every recommendation',
-    prompt: 'Provide the strategic narrative explaining the reasoning behind all recommendations. Use clear, simple, professional English without jargon. Do not use any emojis.'
+    prompt: 'Provide a concise, 1-2 paragraph strategic narrative detailing the reasoning behind your core recommendations.'
   },
   use_cases: {
     title: 'Real-World Use Case Scenarios',
-    icon: '',
+    icon: '🏆',
     description: 'How operators in your vertical would deploy this exact offer',
-    prompt: 'Describe real-world use case scenarios for deploying this offer in the target vertical. Use clear, simple, professional English without jargon. Do not use any emojis.'
+    prompt: 'Briefly describe 2-3 specific real-world use case scenarios for deploying this offer. Keep descriptions short and punchy.'
   },
   value_perception: {
     title: 'Product Core Value Perception',
-    icon: '',
-    description: 'How your market perceives value and how to reframe it',
-    prompt: 'Analyze how the market perceives value and provide reframing strategies to maximize willingness to pay. Use clear, simple, professional English without jargon. Do not use any emojis.'
+    icon: '💡',
+    description: 'How your market perceives value—and how to reframe it for maximum willingness to pay',
+    prompt: 'Analyze how the market perceives value and provide 1-2 concise reframing strategies to maximize willingness to pay.'
   }
 }

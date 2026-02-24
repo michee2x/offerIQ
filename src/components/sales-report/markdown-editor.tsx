@@ -38,7 +38,7 @@ export function MarkdownEditor({ reportId, initialContent, onSave }: MarkdownEdi
     content: initialHtml as string,
     editorProps: {
       attributes: {
-        class: 'prose prose-sm dark:prose-invert max-w-none min-h-[600px] p-6 focus:outline-none',
+        class: 'prose prose-sm sm:prose-base prose-slate max-w-none focus:outline-none min-h-[1056px] w-full max-w-[816px] mx-auto bg-white text-slate-900 p-8 sm:p-16 shadow-lg border border-neutral-200',
       },
     },
     onUpdate: () => {
@@ -244,7 +244,9 @@ export function MarkdownEditor({ reportId, initialContent, onSave }: MarkdownEdi
         )}
 
         {/* Actual editable content area */}
-        <EditorContent editor={editor} />
+        <div className="bg-neutral-100 dark:bg-neutral-900/50 p-4 sm:p-8 rounded-b-lg w-full">
+          <EditorContent editor={editor} />
+        </div>
       </div>
     </div>
   )

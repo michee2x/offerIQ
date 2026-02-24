@@ -21,22 +21,31 @@ export async function generateSalesReport(
   fullReport += `<p><em>Generated on ${new Date().toLocaleDateString()}</em></p>\n`
   fullReport += `<hr />\n\n`
 
-  // Generate ALL sections in PARALLEL for speed
+  // Generate ALL sections sequentially with delay to respect 5 RPM Free Tier limit
   const sections = Object.keys(SECTION_METADATA) as ReportSection[]
 
-  console.log(`🚀 Generating ${sections.length} sections in parallel using Gemini...`)
+  console.log(`🚀 Generating ${sections.length} sections sequentially using Gemini...`)
 
-  const sectionPromises = sections.map(section =>
-    generateReportSection(
+  const sectionContents: string[] = []
+
+  for (let i = 0; i < sections.length; i++) {
+    const section = sections[i];
+    console.log(`Generating ${i + 1}/${sections.length}: ${section}...`)
+
+    const content = await generateReportSection(
       section,
       SECTION_METADATA[section],
       contextPrompt,
       modelName
     )
-  )
+    
+    sectionContents.push(content)
 
-  // Wait for all sections to complete
-  const sectionContents = await Promise.all(sectionPromises)
+    // Wait 15 seconds between requests to maintain 4 RPM (under the 5 RPM limit)
+    if (i < sections.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 15000))
+    }
+  }
 
   // Build the full report
   sections.forEach((section, index) => {
@@ -58,12 +67,13 @@ async function generateReportSection(
   section: ReportSection,
   sectionData: any,
   contextPrompt: string,
-  modelName: string
+  modelName: string,
+  retries = 3
 ): Promise<string> {
   try {
     const systemPrompt = `You are a world-class Revenue Consultant and Marketing Strategist. You provide deep, actionable insights that transform offers into high-converting revenue engines. Be specific, strategic, and data-informed. Provide your response in clear, fluent, professional English using straightforward language that is easy to comprehend without unnecessary jargon. NEVER use any emojis in your response. Format your output strictly as well-structured HTML, optimizing for readability with excellent use of typography, spacing, and appropriate HTML paragraphing.`
 
-    const userPrompt = `${contextPrompt}\n\n${sectionData.prompt}\n\nProvide a comprehensive analysis in semantically structured HTML format. Use appropriate HTML tags such as <h3>, <h4>, <p>, <ul>, <li>, <strong>, <em>, and <blockquote>. Do NOT wrap the response in markdown code blocks (e.g., \`\`\`html) or add any extra text. Return raw HTML only.`
+    const userPrompt = `${contextPrompt}\n\nSection Core Directive: ${sectionData.title}\nGoal: ${sectionData.description}\n\nTask: ${sectionData.prompt}\n\nCRITICAL AI INSTRUCTION:\nThe Output isn't just content; it is Clarity. Do NOT write long essays. Do NOT generate unnecessary fluffy filler. Keep answers extraordinarily concise, punchy, and highly structured format (using <ul>/<li> for lists).\n\nProvide a highly concise analysis in semantically structured HTML format. Use appropriate HTML tags such as <h4>, <p>, <ul>, <li>, and <strong>. Do NOT wrap the response in markdown code blocks (e.g., \`\`\`html) or add any extra text. Return raw HTML only.`
     console.log("this is the reports prompt: ", `${systemPrompt}\n\n${userPrompt}`)
 
     const response = await ai.models.generateContent({
@@ -80,9 +90,18 @@ async function generateReportSection(
     }
 
     return response.text
-  } catch (error) {
+  } catch (error: any) {
+    const isRateLimit = error.status === 429 || error.message?.includes('429') || error.message?.includes('quota');
+    const isUnavailable = error.status === 503 || error.message?.includes('503');
+    
+    if (retries > 0 && (isRateLimit || isUnavailable)) {
+      const waitTime = isRateLimit ? 35000 : 15000;
+      console.log(`⏳ API error (${error.status || 'Rate Limit/Quota'}) for ${section}. Retrying in ${waitTime/1000}s... (${retries} retries left)`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+      return generateReportSection(section, sectionData, contextPrompt, modelName, retries - 1);
+    }
     console.error(`Error generating section ${section}:`, error)
-    return `*Error generating this section. Please try regenerating.*`
+    return `<p><em>Error generating this section. Please try regenerating.</em></p>`
   }
 }
 
@@ -100,7 +119,7 @@ export async function regenerateReportSection(
   const modelName = process.env.GEMINI_MODEL || "gemini-2.0-flash-exp"
 
   const systemPrompt = `You are a world-class Revenue Consultant and Marketing Strategist. Provide your response in clear, fluent, professional English using straightforward language that is easy to comprehend without unnecessary jargon. NEVER use any emojis in your response. Format your output strictly as well-structured HTML, optimizing for readability with excellent use of typography, spacing, and appropriate HTML paragraphing.`
-  const userPrompt = `${contextPrompt}\n\n${sectionData.prompt}\n\nAdditional Instructions: ${additionalInstructions}\n\nProvide a comprehensive analysis in semantically structured HTML format. Use appropriate HTML tags such as <h3>, <h4>, <p>, <ul>, <li>, <strong>, <em>, and <blockquote>. Do NOT wrap the response in markdown code blocks (e.g., \`\`\`html) or add any extra text. Return raw HTML only.`
+  const userPrompt = `${contextPrompt}\n\nSection Core Directive: ${sectionData.title}\nGoal: ${sectionData.description}\n\nTask: ${sectionData.prompt}\n\nAdditional Instructions: ${additionalInstructions}\n\nCRITICAL AI INSTRUCTION:\nThe Output isn't just content; it is Clarity. Do NOT write long essays. Keep answers extraordinarily concise, punchy, and highly structured (using <ul>/<li> for lists).\n\nProvide a highly concise analysis in semantically structured HTML format. Use appropriate HTML tags such as <h4>, <p>, <ul>, <li>, and <strong>. Do NOT wrap the response in markdown code blocks (e.g., \`\`\`html) or add any extra text. Return raw HTML only.`
 
   const response = await ai.models.generateContent({
     model: modelName,
