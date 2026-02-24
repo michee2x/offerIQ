@@ -9,8 +9,8 @@ import { updateReportContent } from '@/app/actions/sales-report'
 import { useEditor, EditorContent } from '@tiptap/react'
 import { BubbleMenu, FloatingMenu } from '@tiptap/react/menus'
 import StarterKit from '@tiptap/starter-kit'
+import TextAlign from '@tiptap/extension-text-align'
 import { marked } from 'marked'
-import TurndownService from 'turndown'
 
 interface MarkdownEditorProps {
   reportId: string
@@ -23,19 +23,17 @@ export function MarkdownEditor({ reportId, initialContent, onSave }: MarkdownEdi
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [isEditorReady, setIsEditorReady] = useState(false)
 
-  // Initialize Turndown to convert HTML back to Markdown
-  const turndownService = new TurndownService({
-    headingStyle: 'atx',
-    codeBlockStyle: 'fenced',
-    emDelimiter: '*',
-  })
-
-  // Parse initial Markdown into HTML for Tiptap
-  // Using Promise.resolve since marked might be async in newer setups, but sync here is fine for basic markdown
-  const initialHtml = typeof marked === 'function' ? marked(initialContent) : marked.parse(initialContent)
+  // Parse initial Content into HTML (Handle both legacy Markdown and new HTML seamlessly)
+  const isHtml = /<[a-z][\s\S]*>/i.test(initialContent.trim());
+  const initialHtml = isHtml ? initialContent : (typeof marked === 'function' ? marked(initialContent) : marked.parse(initialContent))
 
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [
+      StarterKit,
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
+      }),
+    ],
     immediatelyRender: false,
     content: initialHtml as string,
     editorProps: {
@@ -68,13 +66,12 @@ export function MarkdownEditor({ reportId, initialContent, onSave }: MarkdownEdi
     setSaving(true)
 
     try {
-      // Get current HTML from editor and convert back to Markdown
+      // Get current HTML from editor directly
       const html = editor.getHTML()
-      const markdown = turndownService.turndown(html)
 
-      // Only save if content actually changed (avoid unnecessary saves)
-      if (markdown !== initialContent) {
-        const result = await updateReportContent(reportId, markdown)
+      // Ensure content corresponds to changes before updating
+      if (html !== initialHtml && html !== initialContent) { // skip redundant saves if unchanged
+        const result = await updateReportContent(reportId, html)
         
         if (!result.error) {
           setLastSaved(new Date())

@@ -16,9 +16,10 @@ export async function generateSalesReport(
   const contextPrompt = buildContextPrompt(offerContext, fileSummaries)
   const modelName = process.env.GEMINI_MODEL || "gemini-2.0-flash-exp"
 
-  let fullReport = `# Sales Report: ${offerContext.product_name}\n\n`
-  fullReport += `*Generated on ${new Date().toLocaleDateString()}*\n\n`
-  fullReport += `---\n\n`
+  let fullReport = `<div class="sales-report">\n`
+  fullReport += `<h1>Sales Report: ${offerContext.product_name}</h1>\n`
+  fullReport += `<p><em>Generated on ${new Date().toLocaleDateString()}</em></p>\n`
+  fullReport += `<hr />\n\n`
 
   // Generate ALL sections in PARALLEL for speed
   const sections = Object.keys(SECTION_METADATA) as ReportSection[]
@@ -40,10 +41,11 @@ export async function generateSalesReport(
   // Build the full report
   sections.forEach((section, index) => {
     const sectionData = SECTION_METADATA[section]
-    fullReport += `## ${sectionData.icon} ${sectionData.title}\n\n`
-    fullReport += `${sectionContents[index]}\n\n`
-    fullReport += `---\n\n`
+    fullReport += `<h2>${sectionData.icon} ${sectionData.title}</h2>\n`
+    fullReport += `${sectionContents[index]}\n`
+    fullReport += `<hr />\n`
   })
+  fullReport += `</div>`
 
   console.log(`✅ Report generation complete!`)
   return fullReport
@@ -59,9 +61,10 @@ async function generateReportSection(
   modelName: string
 ): Promise<string> {
   try {
-    const systemPrompt = `You are a world-class Revenue Consultant and Marketing Strategist. You provide deep, actionable insights that transform offers into high-converting revenue engines. Be specific, strategic, and data-informed. Provide your response in clear, fluent, professional English using straightforward language that is easy to comprehend without unnecessary jargon. NEVER use any emojis in your response.`
+    const systemPrompt = `You are a world-class Revenue Consultant and Marketing Strategist. You provide deep, actionable insights that transform offers into high-converting revenue engines. Be specific, strategic, and data-informed. Provide your response in clear, fluent, professional English using straightforward language that is easy to comprehend without unnecessary jargon. NEVER use any emojis in your response. Format your output strictly as well-structured HTML, optimizing for readability with excellent use of typography, spacing, and appropriate HTML paragraphing.`
 
-    const userPrompt = `${contextPrompt}\n\n${sectionData.prompt}\n\nProvide a comprehensive analysis in markdown format. Use bullet points, subheadings, and clear structure. Be specific and actionable.`
+    const userPrompt = `${contextPrompt}\n\n${sectionData.prompt}\n\nProvide a comprehensive analysis in semantically structured HTML format. Use appropriate HTML tags such as <h3>, <h4>, <p>, <ul>, <li>, <strong>, <em>, and <blockquote>. Do NOT wrap the response in markdown code blocks (e.g., \`\`\`html) or add any extra text. Return raw HTML only.`
+    console.log("this is the reports prompt: ", `${systemPrompt}\n\n${userPrompt}`)
 
     const response = await ai.models.generateContent({
       model: modelName,
@@ -96,8 +99,8 @@ export async function regenerateReportSection(
   const sectionData = SECTION_METADATA[section]
   const modelName = process.env.GEMINI_MODEL || "gemini-2.0-flash-exp"
 
-  const systemPrompt = `You are a world-class Revenue Consultant and Marketing Strategist. Provide your response in clear, fluent, professional English using straightforward language that is easy to comprehend without unnecessary jargon. NEVER use any emojis in your response.`
-  const userPrompt = `${contextPrompt}\n\n${sectionData.prompt}\n\nAdditional Instructions: ${additionalInstructions}\n\nProvide a comprehensive analysis in markdown format.`
+  const systemPrompt = `You are a world-class Revenue Consultant and Marketing Strategist. Provide your response in clear, fluent, professional English using straightforward language that is easy to comprehend without unnecessary jargon. NEVER use any emojis in your response. Format your output strictly as well-structured HTML, optimizing for readability with excellent use of typography, spacing, and appropriate HTML paragraphing.`
+  const userPrompt = `${contextPrompt}\n\n${sectionData.prompt}\n\nAdditional Instructions: ${additionalInstructions}\n\nProvide a comprehensive analysis in semantically structured HTML format. Use appropriate HTML tags such as <h3>, <h4>, <p>, <ul>, <li>, <strong>, <em>, and <blockquote>. Do NOT wrap the response in markdown code blocks (e.g., \`\`\`html) or add any extra text. Return raw HTML only.`
 
   const response = await ai.models.generateContent({
     model: modelName,
@@ -162,8 +165,8 @@ export async function refineReportSection(
 ): Promise<string> {
   const modelName = process.env.GEMINI_MODEL || "gemini-2.0-flash-exp"
 
-  const systemPrompt = 'You are a helpful AI assistant that refines sales report sections based on user feedback. Maintain the markdown format and structure. Provide your response in clear, fluent, professional English using straightforward language that is easy to comprehend without unnecessary jargon. NEVER use any emojis in your response.'
-  const userPrompt = `Current section content:\n\n${currentContent}\n\nUser request: ${userMessage}\n\nProvide the refined version of this section.`
+  const systemPrompt = 'You are a helpful AI assistant that refines sales report sections based on user feedback. Provide your response in clear, fluent, professional English using straightforward language that is easy to comprehend without unnecessary jargon. NEVER use any emojis in your response. Format your output strictly as well-structured HTML.'
+  const userPrompt = `Current section HTML content:\n\n${currentContent}\n\nUser request: ${userMessage}\n\nProvide the refined version of this section. Ensure it is formatted in semantic HTML. Do NOT wrap the response in markdown code blocks. Return raw HTML only.`
 
   const response = await ai.models.generateContent({
     model: modelName,
